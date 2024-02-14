@@ -26,6 +26,16 @@ class AccountViewSet(viewsets.ModelViewSet):
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data)
 
+    # @action(detail=True, methods=['post']) добавляет новое действие toggle_block к AccountViewSet,
+    # которое переключает статус блокировки счета. Затем вы можете обращаться к этому эндпоинту по адресу
+    # http://your-domain.com/api/accounts/1/toggle_block/ для блокировки или разблокировки счета с ID 1
+    @action(detail=True, methods=['post'])
+    def toggle_block(self, request, pk=None):
+        account = self.get_object()
+        account.is_blocked = not account.is_blocked
+        account.save()
+        return Response({'status': 'Счет заблокирован' if account.is_blocked else 'Счет разблокирован'})
+
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()

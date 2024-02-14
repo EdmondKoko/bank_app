@@ -29,3 +29,8 @@ GET http://your-domain.com/api/transactions/
 
 GET http://your-domain.com/api/accounts/1/sent_transactions/
 GET http://your-domain.com/api/accounts/1/received_transactions/
+
+
+Для блокировки или разблокировки счета:
+
+POST http://your-domain.com/api/accounts/1/toggle_block/
