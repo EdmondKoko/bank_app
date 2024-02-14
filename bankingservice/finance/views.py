@@ -46,6 +46,10 @@ class TransactionViewSet(viewsets.ModelViewSet):
             return Response({"error": "Отправитель или получатель не существует."},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        if sender.is_blocked or receiver.is_blocked:
+            return Response({"error": "Один из счетов заблокирован."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         if sender.balance < amount:
             return Response({"error": "Недостаточный баланс у отправителя."},
                             status=status.HTTP_400_BAD_REQUEST)
