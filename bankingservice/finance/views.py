@@ -30,7 +30,7 @@ class AccountViewSet(viewsets.ModelViewSet):
     # которое переключает статус блокировки счета. Затем вы можете обращаться к этому эндпоинту по адресу
     # http://your-domain.com/api/accounts/1/toggle_block/ для блокировки или разблокировки счета с ID 1
     @action(detail=True, methods=['post'])
-    def toggle_block(self, request, pk=None):
+    def account_block(self, request, pk=None):
         account = self.get_object()
         account.is_blocked = not account.is_blocked
         account.save()
@@ -53,16 +53,13 @@ class TransactionViewSet(viewsets.ModelViewSet):
             sender = Account.objects.get(id=sender_id)
             receiver = Account.objects.get(id=receiver_id)
         except Account.DoesNotExist:
-            return Response({"error": "Отправитель или получатель не существует."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Отправитель или получатель не существует."}, status=status.HTTP_400_BAD_REQUEST)
 
         if sender.is_blocked or receiver.is_blocked:
-            return Response({"error": "Один из счетов заблокирован."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Один из счетов заблокирован."}, status=status.HTTP_400_BAD_REQUEST)
 
         if sender.balance < amount:
-            return Response({"error": "Недостаточный баланс у отправителя."},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Недостаточный баланс у отправителя."}, status=status.HTTP_400_BAD_REQUEST)
 
         sender.balance -= amount
         receiver.balance += amount

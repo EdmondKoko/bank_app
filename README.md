@@ -33,4 +33,4 @@ GET http://your-domain.com/api/accounts/1/received_transactions/
 
 Для блокировки или разблокировки счета:
 
-POST http://your-domain.com/api/accounts/1/toggle_block/
+POST http://your-domain.com/api/accounts/1/account_block/
