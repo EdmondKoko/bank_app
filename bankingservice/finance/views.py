@@ -1,17 +1,21 @@
-from rest_framework.response import Response
-from rest_framework import viewsets, status
+from decimal import Decimal
+
+from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError, NotFound, PermissionDenied
+from rest_framework.response import Response
 
 from .models import Account, Transaction
 from .serializers import AccountSerializer, TransactionSerializer
 
 
 class AccountViewSet(viewsets.ModelViewSet):
+    """Менеджмент счетов через API."""
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
 
-    # @action(detail=True, methods=['get']) добавляет новые действия к AccountViewSet,
-    # которые возвращают все отправленные и полученные транзакции для конкретного счета.
+    # Добавляет новые действия к AccountViewSet, которые возвращают все отправленные
+    # и полученные транзакции для конкретного счета
     @action(detail=True, methods=['get'])
     def sent_transactions(self, request, pk=None):
         account = self.get_object()
@@ -26,9 +30,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data)
 
-    # @action(detail=True, methods=['post']) добавляет новое действие toggle_block к AccountViewSet,
-    # которое переключает статус блокировки счета. Затем вы можете обращаться к этому эндпоинту по адресу
-    # http://your-domain.com/api/accounts/1/toggle_block/ для блокировки или разблокировки счета с ID 1
+    # Добавляет новое действие к AccountViewSet, которое переключает статус блокировки счета
     @action(detail=True, methods=['post'])
     def account_block(self, request, pk=None):
         account = self.get_object()
@@ -38,28 +40,32 @@ class AccountViewSet(viewsets.ModelViewSet):
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
+    """Менеджмент транзакций между счетами через API."""
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
-    # при создании счета, баланс автоматически устанавливается равным 0 благодаря параметру default=0 в модели Account.
-    # При проведении транзакции, проверяется существование отправителя и получателя, а также достаточность баланса у
-    # отправителя. Если все проверки проходят успешно,
+
+    # При проведении транзакции, проверяется существование отправителя и получателя,
+    # а также достаточность баланса у отправителя. Если все проверки проходят успешно,
     # балансы счетов обновляются, и транзакция сохраняется в базе данных
     def create(self, request, *args, **kwargs):
         sender_id = request.data.get('sender')
         receiver_id = request.data.get('receiver')
-        amount = request.data.get('amount')
+        amount = Decimal(request.data.get('amount'))
+
+        if amount < 0:
+            raise ValidationError("Сумма транзакции не может быть меньше или равной нулю.")
 
         try:
             sender = Account.objects.get(id=sender_id)
             receiver = Account.objects.get(id=receiver_id)
         except Account.DoesNotExist:
-            return Response({"error": "Отправитель или получатель не существует."}, status=status.HTTP_400_BAD_REQUEST)
+            raise NotFound("Отправитель или получатель не существует.")
 
         if sender.is_blocked or receiver.is_blocked:
-            return Response({"error": "Один из счетов заблокирован."}, status=status.HTTP_400_BAD_REQUEST)
+            raise PermissionDenied("Один из счетов заблокирован.")
 
         if sender.balance < amount:
-            return Response({"error": "Недостаточный баланс у отправителя."}, status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError("Недостаточный баланс у отправителя.")
 
         sender.balance -= amount
         receiver.balance += amount
